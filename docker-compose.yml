@@ -1,0 +1,12 @@
+version: "1"
+
+services:
+  bot:
+    container_name: bot
+    build:
+      context: ./bot
+      dockerfile: Dockerfile
+    volumes:
+      - ./bot/logs/:/app/logs/
+    env_file:
+      - ./.env

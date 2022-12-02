@@ -1,17 +1,19 @@
-from bs4 import BeautifulSoup
-from copy import deepcopy
 import logging
+from copy import deepcopy
+
+from bs4 import BeautifulSoup
 import pandas as pd
 import requests
-import re
-import lxml
+
+from bot.app.constants import *
+
 
 # Creating logger
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-handler = logging.FileHandler('errors_warnings.log')
+handler = logging.FileHandler('../logs/errors_warnings.log')
 handler.setLevel(logging.WARNING)
 
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -20,6 +22,7 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 # Creating a class for scraping websites and collecting the necessary information for our future dataset
+
 
 class CollectData:
 
@@ -44,7 +47,7 @@ class CollectData:
         try:
             med = med.upper()
             letter = med[0]
-            url = 'https://www.accessdata.fda.gov/scripts/cder/daf/index.cfm?event=browseByLetter.page&productLetter=' + letter + '&ai=0'
+            url = FDA_URL.replace('first_letter', letter)
             response = requests.get(url, timeout=20)
             bs = BeautifulSoup(response.text, "lxml")
             drugs = bs.find_all(title='Click to expand drug name')
@@ -52,14 +55,14 @@ class CollectData:
                 if ' ' + med + ' ' in ' ' + drug.text + ' ':
                     return 1
             return 0
-        except:
-            logger.exception(f'Error occured while scraping fda.com with {med}')
+        except Exception:
+            logger.exception(f'Error occurred while scraping fda.com with {med}')
             return None
 
     def pubmed(self, med):
         try:
             med = med.replace(' ', '+')
-            url = 'https://pubmed.ncbi.nlm.nih.gov/?term=' + med + '%5Btitle%5D&filter=pubt.clinicaltrial&filter=pubt.meta-analysis'
+            url = PUBMED_URL.replace('med_name', med)
             response = requests.get(url, timeout=10)
             bs = BeautifulSoup(response.text, "lxml")
             if bs.find('span', class_='no-results-query') or bs.find('em',
@@ -72,25 +75,25 @@ class CollectData:
                 return 1
             else:
                 return 0
-        except:
-            logger.exception(f'Error occured while scraping pubmed.com with {med}')
+        except Exception:
+            logger.exception(f'Error occurred while scraping pubmed.com with {med}')
             return None
 
     def ema(self, med):
         try:
-            med_url = med.replace(' ', '%20').lower()
-            url = 'https://www.ema.europa.eu/en/medicines/field_ema_web_categories%253Aname_field/Human/search_api_aggregation_ema_active_substance_and_inn_common_name/' + med_url
+            med_name = med.replace(' ', '%20').lower()
+            url = EMA_URL + med_name
             response = requests.get(url, timeout=10)
             bs = BeautifulSoup(response.text, "lxml")
             return int(bool(bs.find('ul', class_='ema-listings view-content-solr ecl-u-pt-m')))
-        except:
-            logger.exception(f'Error occured while scraping ema.com with {med}')
+        except Exception:
+            logger.exception(f'Error occurred while scraping ema.com with {med}')
             return None
 
     def drugs(self, med):
         try:
             two_letters = med.lower()[:2]
-            url = 'https://www.drugs.com/alpha/' + two_letters + '.html'
+            url = DRUGS_URL.replace('two_letters', two_letters)
             response = requests.get(url, timeout=10)
             bs = BeautifulSoup(response.text, "lxml")
             if bs.find('h1', text='Page Not Found'):
@@ -102,14 +105,14 @@ class CollectData:
                     if ' ' + med.lower() + ' ' in ' ' + drug.text.lower() + ' ':
                         return 1
                 return 0
-        except:
-            logger.exception(f'Error occured while scraping drugs.com with {med}')
+        except Exception:
+            logger.exception(f'Error occurred while scraping drugs.com with {med}')
             return None
 
     def who(self, med):
         try:
-            med_url = med.replace(' ', '%20')
-            url = 'https://list.essentialmeds.org/?query=' + med_url
+            med_name = med.replace(' ', '%20')
+            url = WHO_URL + med_name
             response = requests.get(url, timeout=10)
             bs = BeautifulSoup(response.text, "lxml")
             if bs.find('h5', class_='medicine-name'):
@@ -119,14 +122,14 @@ class CollectData:
                     if ' ' + med.lower() + ' ' in ' ' + name.text.lower() + ' ':
                         return 1
             return 0
-        except:
-            logger.exception(f'Error occured while scraping WHO with {med}')
+        except Exception:
+            logger.exception(f'Error occurred while scraping WHO with {med}')
             return None
 
     def rxlist(self, med):
         try:
-            letter = med[0].lower()
-            url = 'https://www.rxlist.com/drugs/alpha_' + letter + '.htm'
+            first_letter = med[0].lower()
+            url = RXLIST_URL.replace('first_letter', first_letter)
             response = requests.get(url, timeout=10)
             bs = BeautifulSoup(response.text, "lxml")
             if bs.find('div', class_='AZ_results'):
@@ -136,29 +139,19 @@ class CollectData:
                     if ' ' + med.lower() + ' ' in ' ' + drug.text.lower() + ' ':
                         return 1
             return 0
-        except:
-            logger.exception(f'Error occured while scraping RxList with {med}')
+        except Exception:
+            logger.exception(f'Error occurred while scraping RxList with {med}')
             return None
 
-
-TABLE = {'Med': [],
-         'FDA': [],
-         'PubMed': [],
-         'EMA': [],
-         'drugs.com': [],
-         'WHO': [],
-         'RxList': [],
-         'Target': []
-        }
 
 # I got prepared lists of potentially reliable and unreliable medications.
 # I am going to load them and pass into the CollectData class.
 
-with open('data/reliable_meds.txt', 'r') as file:
+with open('reliable_meds.txt', 'r') as file:
     reliable_meds = file.readlines()
 reliable_meds = [med.strip() for med in reliable_meds]
 
-with open('data/unreliable_meds.txt', 'r') as file:
+with open('unreliable_meds.txt', 'r') as file:
     unreliable_meds = file.readlines()
 unreliable_meds = [med.strip() for med in unreliable_meds]
 
