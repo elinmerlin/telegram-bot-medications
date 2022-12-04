@@ -1,6 +1,4 @@
 # telegram-bot-medications
-<<<<<<< HEAD
-=======
 
 Hello! 😊 This is a bot for checking the reliability of medicines. Overall evaluation of the drug is based on the analysis of its presence in the following  sources:
 - [Food and Drug Administration](https://www.accessdata.fda.gov/scripts/cder/daf/index.cfm), 
@@ -41,4 +39,3 @@ Then to deploy it from the root folder:
 To switch containers off:
 
     docker-compose down -v
->>>>>>> 06e8831e246d423c29e333fab033b100680c4e28
