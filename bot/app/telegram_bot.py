@@ -28,20 +28,22 @@ async def handle_text(message):
     med = message.text.lower().strip()
     if some_trouble_with(med):
         await bot.send_message(message.chat.id, ERROR_MESSAGE)
+        return
+
+    drug = CollectData(med)
+    drug_features = drug.get_features()
+    if nans_in_features(med, drug_features):
+        await bot.send_message(message.chat.id, ERROR_MESSAGE)
+        return
+    
+    scaled_features = scale(drug_features)
+    probability = make_prediction(scaled_features)
+    if probability > UPPER_THRESHOLD:
+        await bot.send_message(message.chat.id, med.capitalize() + RELIABLE_MESSAGE + drug.info)
+    elif probability < LOWER_THRESHOLD:
+        await bot.send_message(message.chat.id, med.capitalize() + UNRELIABLE_MESSAGE + drug.info)
     else:
-        drug = CollectData(med)
-        drug_features = drug.get_features()
-        if nans_in_features(med, drug_features):
-            await bot.send_message(message.chat.id, ERROR_MESSAGE)
-        else:
-            scaled_features = scale(drug_features)
-            probability = make_prediction(scaled_features)
-            if probability > UPPER_THRESHOLD:
-                await bot.send_message(message.chat.id, med.capitalize() + RELIABLE_MESSAGE + drug.info)
-            elif probability < LOWER_THRESHOLD:
-                await bot.send_message(message.chat.id, med.capitalize() + UNRELIABLE_MESSAGE + drug.info)
-            else:
-                await bot.send_message(message.chat.id, med.capitalize() + CHECK_MANUAL_MESSAGE + drug.info)
+        await bot.send_message(message.chat.id, med.capitalize() + CHECK_MANUALLY_MESSAGE + drug.info)
 
 
 asyncio.run(bot.polling())

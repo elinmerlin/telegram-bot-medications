@@ -34,7 +34,7 @@ ingredient of the drug in English to get an overall rating of its reliability.'
 ERROR_MESSAGE = 'Something went wrong. Try again and make sure that you enter the drug name correctly.'
 RELIABLE_MESSAGE = ' is a reliable drug 👍. For more details check the following resources:\n'
 UNRELIABLE_MESSAGE = ' is not a reliable drug 👎. For more details check the following resources:\n'
-CHECK_MANUAL_MESSAGE = ' is a questionable drug. I would recommend you check it manually. For that ' \
+CHECK_MANUALLY_MESSAGE = ' is a questionable drug. I would recommend you check it manually. For that ' \
                        'check the following resources:\n'
 
 
